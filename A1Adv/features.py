@@ -1,6 +1,29 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime
+
+
+def time_difference(t1, t2):
+    year1 = int(t1[0:4])
+    year2 = int(t2[0:4])
+    month1 = int(t1[5:7])
+    month2 = int(t2[5:7])
+    day1 = int(t1[8:10])
+    day2 = int(t2[8:10])
+    hour1 = int(t1[11:13])
+    hour2 = int(t2[11:13])
+    min1 = int(t1[14:16])
+    min2 = int(t2[14:16])
+    sec1 = int(t1[17:19])
+    sec2 = int(t2[17:19])
+    subsec1 = int(t1[20:23])
+    subsec2 = int(t2[20:23])
+    datetime1 = datetime.datetime(year1, month1, day1, hour1, min1, sec1, subsec1 * 1000)
+    datetime2 = datetime.datetime(year2, month2, day2, hour2, min2, sec2, subsec2 * 1000)
+
+    return (datetime2 - datetime1).total_seconds()
+
 
 def time_earlier(t1, t2):
     year1 = int(t1[0:4])
@@ -56,12 +79,15 @@ def create_time_series(df):
 
     X = np.zeros((len(unique_mt), n))
     indices_to_drop = np.array([])
+    j = 0
     for m_time in mood_times:
-        j = 0
-        earlier_time_indices = np.array([k for k in range(l) if time_earlier(measurement_times[k], m_time)])
+        earlier_time_indices = np.array([k for k in range(l)
+                                         if time_earlier(measurement_times[k], m_time)
+                                         and k not in indices_to_drop])
+        if len(earlier_time_indices) == 0:
+            continue
         earlier_types = measurement_types[earlier_time_indices]
         i = 0
-        measurement_indices = np.array([])
         for m_type in unique_mt:
             earlier_measurement_indices = np.nonzero(np.isin(earlier_types, m_type))[0]
             if len(earlier_measurement_indices) != 0:
@@ -71,21 +97,29 @@ def create_time_series(df):
                     X[i, j] = np.sum(measurement_values[measurement_indices])
                 elif m_type in mean_types:
                     X[i, j] = np.mean(measurement_values[measurement_indices])
-                np.concatenate((indices_to_drop, measurement_indices))
-                measurement_times = np.delete(measurement_times, indices_to_drop)
+                indices_to_drop = np.concatenate((indices_to_drop, measurement_indices))
             i += 1
-            l -= indices_to_drop.shape[0]
-        j +=1
+        j += 1
 
     y = mood_values
 
     return X, y
+
+
+def shift_and_add_time(df, X, y):
+    timestamps = df.time.values[df.variable == 'mood']
+    t_delta = np.array([time_difference(timestamps[i], timestamps[i + 1]) for i in range(y.shape[0] - 1)])
+    print(t_delta.shape)
+    sX = X[:, :-1]
+    print(sX.shape)
+    sX = np.vstack((sX, t_delta))
+    sy = y[1:]
+
+    return sX, sy
+
 
 df = pd.read_csv("./Data/dataset_mood_smartphone.csv")
 df = df.dropna(axis=0, how='any')
 ids = np.unique(df.id.values)
 user_df = df[df.id == ids[0]]
 X, y = create_time_series(user_df)
-
-plt.plot(np.arange(len(y)), y)
-plt.show()
