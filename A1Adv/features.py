@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def time_earlier(t1, t2):
     year1 = int(t1[0:4])
@@ -55,22 +56,26 @@ def create_time_series(df):
 
     X = np.zeros((len(unique_mt), n))
     indices_to_drop = np.array([])
-    for j in mood_times:
-        earlier_time_indices = np.array([k for k in range(l) if time_earlier(measurement_times[k], j)])
+    for m_time in mood_times:
+        j = 0
+        earlier_time_indices = np.array([k for k in range(l) if time_earlier(measurement_times[k], m_time)])
         earlier_types = measurement_types[earlier_time_indices]
-        for m in unique_mt:
-            i = 0
-            earlier_measurement_indices = np.nonzero(np.isin(earlier_types, m))[0]
+        i = 0
+        measurement_indices = np.array([])
+        for m_type in unique_mt:
+            earlier_measurement_indices = np.nonzero(np.isin(earlier_types, m_type))[0]
             if len(earlier_measurement_indices) != 0:
-                if m in sum_types:
+                measurement_indices = earlier_time_indices[earlier_measurement_indices]
+                if m_type in sum_types:
                     # Sum all measurement types that should be added up
-                    X[i, j] = np.sum(measurement_values[earlier_measurement_indices])
-                elif m in mean_types:
-                    X[i, j] = np.mean(measurement_values[earlier_measurement_indices])
-                i += 1
-                np.concatenate(indices_to_drop, earlier_measurement_indices)
-            measurement_times = np.delete(measurement_times, indices_to_drop)
-            l -= len()
+                    X[i, j] = np.sum(measurement_values[measurement_indices])
+                elif m_type in mean_types:
+                    X[i, j] = np.mean(measurement_values[measurement_indices])
+                np.concatenate((indices_to_drop, measurement_indices))
+                measurement_times = np.delete(measurement_times, indices_to_drop)
+            i += 1
+            l -= indices_to_drop.shape[0]
+        j +=1
 
     y = mood_values
 
@@ -81,3 +86,6 @@ df = df.dropna(axis=0, how='any')
 ids = np.unique(df.id.values)
 user_df = df[df.id == ids[0]]
 X, y = create_time_series(user_df)
+
+plt.plot(np.arange(len(y)), y)
+plt.show()
