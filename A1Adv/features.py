@@ -68,7 +68,7 @@ def create_time_series(df):
     mood_values = df.value[df.variable == 'mood'].values
     n = mood_values.shape[0]
 
-    unique_mt = np.unique(df.variable[df.variable != ' mood'].values).tolist()
+    unique_mt = np.unique(df.variable[df.variable != 'mood'].values).tolist()
     measurement_types = df.variable.values[df.variable != 'mood']
     measurement_values = df.value.values[df.variable != 'mood']
     measurement_times = df.time.values[df.variable != 'mood']
