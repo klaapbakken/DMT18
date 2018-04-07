@@ -63,12 +63,13 @@ def time_earlier(t1, t2):
         return year1 < year2
 
 
-def create_time_series(df):
+def create_time_series(df, umt):
     mood_times = df.time[df.variable == 'mood'].values
     mood_values = df.value[df.variable == 'mood'].values
     n = mood_values.shape[0]
 
-    unique_mt = np.unique(df.variable[df.variable != 'mood'].values).tolist()
+    #unique_mt = np.unique(df.variable[df.variable != 'mood'].values).tolist()
+    unique_mt = umt
     measurement_types = df.variable.values[df.variable != 'mood']
     measurement_values = df.value.values[df.variable != 'mood']
     measurement_times = df.time.values[df.variable != 'mood']
@@ -117,9 +118,37 @@ def shift_and_add_time(df, X, y):
 
     return sX, sy
 
+def merge_user_data(df):
+    umt = np.unique(df.variable.values[df.variable != 'mood'])
+    ids = np.unique(df.id.values)
+    n_ids = ids.shape[0]
+    id_df_list = [df[df.id == ids[i]] for i in range(n_ids)]
+    i = 0
+    X, y = create_time_series(id_df_list[0], umt)
+    X, y = shift_and_add_time(id_df_list[0], X, y)
+    for i in range(1, n_ids):
+        tX, ty = create_time_series(id_df_list[i], umt)
+        tX, ty = shift_and_add_time(id_df_list[i], tX, ty)
+        X = np.hstack((X, tX))
+        y = np.hstack((y, ty))
+        print(X.shape)
+        print(y.shape)
+    return X, y
+
+def save_processed_to_csv(X, y, df):
+    measurement_types = np.unique(df.variable[df.variable != 'mood'].values).tolist()
+    cols = np.concatenate((measurement_types, np.array(['time', 'mood'])))
+    data = np.vstack((X, y)).T
+    proc_df = pd.DataFrame(data=data, columns=cols)
+    proc_df.head()
+    return proc_df.to_csv('full_processed_data.csv', index=False)
+
 
 df = pd.read_csv("./Data/dataset_mood_smartphone.csv")
 df = df.dropna(axis=0, how='any')
 ids = np.unique(df.id.values)
 user_df = df[df.id == ids[0]]
-X, y = create_time_series(user_df)
+
+X, y = merge_user_data(df)
+
+save_processed_to_csv(X, y, df)
