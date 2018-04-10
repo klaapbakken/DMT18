@@ -68,7 +68,7 @@ def create_time_series(df, umt):
     mood_values = df.value[df.variable == 'mood'].values
     n = mood_values.shape[0]
 
-    #unique_mt = np.unique(df.variable[df.variable != 'mood'].values).tolist()
+    # unique_mt = np.unique(df.variable[df.variable != 'mood'].values).tolist()
     unique_mt = umt
     measurement_types = df.variable.values[df.variable != 'mood']
     measurement_values = df.value.values[df.variable != 'mood']
@@ -110,13 +110,12 @@ def create_time_series(df, umt):
 def shift_and_add_time(df, X, y):
     timestamps = df.time.values[df.variable == 'mood']
     t_delta = np.array([time_difference(timestamps[i], timestamps[i + 1]) for i in range(y.shape[0] - 1)])
-    print(t_delta.shape)
     sX = X[:, :-1]
-    print(sX.shape)
     sX = np.vstack((sX, t_delta))
     sy = y[1:]
 
     return sX, sy
+
 
 def merge_user_data(df):
     umt = np.unique(df.variable.values[df.variable != 'mood'])
@@ -135,6 +134,7 @@ def merge_user_data(df):
         print(y.shape)
     return X, y
 
+
 def save_processed_to_csv(X, y, df):
     measurement_types = np.unique(df.variable[df.variable != 'mood'].values).tolist()
     cols = np.concatenate((measurement_types, np.array(['time', 'mood'])))
@@ -144,11 +144,12 @@ def save_processed_to_csv(X, y, df):
     return proc_df.to_csv('full_processed_data.csv', index=False)
 
 
-df = pd.read_csv("./Data/dataset_mood_smartphone.csv")
-df = df.dropna(axis=0, how='any')
-ids = np.unique(df.id.values)
-user_df = df[df.id == ids[0]]
+if __name__ == "__main__":
+    df = pd.read_csv("./Data/dataset_mood_smartphone.csv")
+    df = df.dropna(axis=0, how='any')
+    ids = np.unique(df.id.values)
+    user_df = df[df.id == ids[0]]
 
-X, y = merge_user_data(df)
+    X, y = merge_user_data(df)
 
-save_processed_to_csv(X, y, df)
+    save_processed_to_csv(X, y, df)
