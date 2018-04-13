@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from utility import t_delta, rnn_reshape
+from utility import t_delta, rnn_reshape, rnn_reshape_2
 
 
 def create_time_series(user_df, u_vars, time_arr=None):
@@ -74,6 +74,8 @@ def create_time_series(user_df, u_vars, time_arr=None):
 
 
 def shift_and_add_time(df, X, y):
+    #Adding time since last mood measurement as feature
+    #Shifting response one position to the right
     time_arr = df.time.values[df.variable == 'mood']
     t_d = np.array([t_delta(time_arr[i], time_arr[i + 1]) for i in range(y.shape[0] - 1)])
     sX = X[:, :-1]
@@ -84,6 +86,8 @@ def shift_and_add_time(df, X, y):
 
 
 def merge_user_data(df, reshape):
+    #Collecting data from all users in a data frame into a feature matrix
+    #Option to reshape for use in Keras RNN
     vars = np.unique(df.variable.values[df.variable != 'mood'])
     ids = np.unique(df.id.values)
     n_ids = ids.shape[0]
@@ -95,7 +99,8 @@ def merge_user_data(df, reshape):
     y = c_df.value.values[c_df.variable == 'mood']
     X, y = shift_and_add_time(c_df, X, y)
     if reshape:
-        X, y = rnn_reshape(X, y, 1)
+        X, y = rnn_reshape(X, y, 8)
+        X, y = rnn_reshape_2(X, y, 8, 2)
 
 
     for i in range(1, n_ids):
@@ -104,7 +109,8 @@ def merge_user_data(df, reshape):
         ty = c_df.value.values[c_df.variable == 'mood']
         tX, ty = shift_and_add_time(c_df, tX, ty)
         if reshape:
-            tX, ty = rnn_reshape(tX, ty, 1)
+            tX, ty = rnn_reshape(tX, ty, 8)
+            tX, ty = rnn_reshape_2(tX, ty, 8, 2)
         X = np.concatenate((X, tX))
         y = np.concatenate((y, ty))
         print(X.shape)
@@ -113,6 +119,7 @@ def merge_user_data(df, reshape):
 
 
 def save_processed_to_csv(X, y, df):
+    #Saving data to CSV file
     measurement_types = np.unique(df.variable[df.variable != 'mood'].values).tolist()
     cols = np.concatenate((measurement_types, np.array(['time', 'mood'])))
     data = np.vstack((X, y)).T

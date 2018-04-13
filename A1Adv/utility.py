@@ -1,4 +1,6 @@
 import datetime
+import numpy as np
+
 
 def t_delta(t1, t2):
     """Returns the difference in time between t1 and t2, expressed as seconds.
@@ -27,12 +29,25 @@ def t_delta(t1, t2):
 
     return (datetime2 - datetime1).total_seconds()
 
+
 def rnn_reshape(X, y, l):
+    # Reshaping
     m = X.shape[0]
     n = X.shape[1]
     cut = n % l
-    rX = X[:, cut:].reshape(n//l, l, m)
+    rX = X[:, cut:].reshape(n // l, l, m)
     ry = y[cut:]
 
     return rX, ry
 
+
+def rnn_reshape_2(X, y, l, rb):
+    eX = np.empty((X.shape[0]*l//rb, X.shape[1], X.shape[2]))
+    #1000 8 14
+    fX = X.reshape((X.shape[0]*l, X.shape[2]))
+    #1000 14
+    for i in range(eX.shape[1]):
+        eX[i, :, :] = fX[:l, :]
+        fX = np.roll(fX, -rb, axis = 0)
+    ey = y
+    return eX, ey
