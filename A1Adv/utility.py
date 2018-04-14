@@ -51,3 +51,10 @@ def rnn_reshape_2(X, y, l, rb):
         fX = np.roll(fX, -rb, axis = 0)
     ey = y
     return eX, ey
+
+def create_time_arr(user_df):
+    time = '23:59:59.999'
+    n = len(user_df.time.values)
+    u_dates = np.unique(np.array([user_df.time.values[i][0:11] for i in range(n)]))
+    time_arr = np.array([u_dates[i] + time for i in range(len(u_dates))])
+    return time_arr

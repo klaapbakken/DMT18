@@ -28,7 +28,7 @@ model.add(Dense(256))
 model.add(LSTM(32, input_shape=(tr_X.shape[1], tr_X.shape[2])))
 model.add(Dense(1))
 model.compile(loss='mae', optimizer='adam')
-history = model.fit(tr_X, tr_y, epochs=50, batch_size=64, validation_data=(te_X, te_y), shuffle=False)
+history = model.fit(tr_X, tr_y, epochs=200, batch_size=12, validation_data=(te_X, te_y), shuffle=False)
 
 yhat = model.predict(te_X).reshape((te_X.shape[0],))
 
