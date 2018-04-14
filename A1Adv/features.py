@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from utility import t_delta, rnn_reshape, rnn_reshape_2, create_time_arr
+from utility import t_delta, rnn_reshape, rnn_reshape_2, create_time_arr, manipulate_df_vals
 
 
 def create_time_series(user_df, u_vars, time_arr=None):
@@ -73,21 +73,19 @@ def create_time_series(user_df, u_vars, time_arr=None):
     return X
 
 
-def shift_and_add_time(df, X, y, skip_time=True):
+def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
     #Adding time since last mood measurement as feature
     #Shifting response one position to the right
+    sX = X[:, :-l]
     if not skip_time:
-        time_arr = df.time.values[df.variable == 'mood']
-        t_d = np.array([t_delta(time_arr[i], time_arr[i + 1]) for i in range(y.shape[0] - 1)])
-    sX = X[:, :-1]
-    if not skip_time:
+        t_d = np.array([t_delta(time_arr[i], time_arr[i + 1]) for i in range(y.shape[0] - l)])
         sX = np.vstack((sX, t_d))
-    sy = y[1:]
+    sy = y[l:]
 
     return sX, sy
 
 
-def merge_user_data(df, reshape, mean=False):
+def merge_user_data(df, reshape, l=8, seq_shift=1, mean=False):
     #Collecting data from all users in a data frame into a feature matrix
     #Option to reshape for use in Keras RNN
     if mean:
@@ -104,6 +102,7 @@ def merge_user_data(df, reshape, mean=False):
         c_time_arr = create_time_arr(c_df)
         X = create_time_series(c_df, vars, time_arr=c_time_arr)
     else:
+        c_time_arr = df.time.values[df.variable == 'mood']
         X = create_time_series(c_df, vars)
     if mean:
         y_index = np.where(np.unique(c_df.variable.values) == 'mood')[0][0]
@@ -111,18 +110,20 @@ def merge_user_data(df, reshape, mean=False):
         X = np.delete(X, y_index, 0)
     else:
         y = c_df.value.values[c_df.variable == 'mood']
-    X, y = shift_and_add_time(c_df, X, y, skip_time=mean)
+    X, y = shift_and_add_time(X, y, c_time_arr, l=l, skip_time=mean)
     if reshape:
-        X, y = rnn_reshape(X, y, 8)
-        X, y = rnn_reshape_2(X, y, 8, 2)
+        X, y = rnn_reshape(X, y, l)
+        X, y = rnn_reshape_2(X, y, l, seq_shift)
 
 
     for i in range(1, n_ids):
         c_df = id_df_list[i]
+        print(i)
         if mean:
             c_time_arr = create_time_arr(c_df)
             tX = create_time_series(c_df, vars, time_arr=c_time_arr)
         else:
+            c_time_arr = df.time.values[df.variable == 'mood']
             tX = create_time_series(c_df, vars)
         if mean:
             ty_index = np.where(np.unique(c_df.variable.values) == 'mood')[0][0]
@@ -130,12 +131,16 @@ def merge_user_data(df, reshape, mean=False):
             tX = np.delete(tX, ty_index, 0)
         else:
             ty = c_df.value.values[c_df.variable == 'mood']
-        tX, ty = shift_and_add_time(c_df, tX, ty, skip_time=mean)
+        tX, ty = shift_and_add_time(tX, ty, c_time_arr, l=l, skip_time=mean)
         if reshape:
-            tX, ty = rnn_reshape(tX, ty, 8)
-            tX, ty = rnn_reshape_2(tX, ty, 8, 2)
-        X = np.concatenate((X, tX))
-        y = np.concatenate((y, ty))
+            tX, ty = rnn_reshape(tX, ty, l)
+            tX, ty = rnn_reshape_2(tX, ty, l, seq_shift)
+        if reshape:
+            X = np.concatenate((X, tX))
+            y = np.concatenate((y, ty))
+        else:
+            X = np.hstack((X, tX))
+            y = np.hstack((y, ty))
         print(X.shape)
         print(y.shape)
     return X, y
@@ -152,25 +157,10 @@ def save_processed_to_csv(X, y, df):
 
 if __name__ == "__main__":
     org_df = pd.read_csv("./Data/dataset_mood_smartphone.csv")
-    org_df = org_df.dropna(axis=0, how='any')
 
-    val_df = org_df[org_df.variable == 'circumplex.valence']
-    ar_df = org_df[org_df.variable == 'circumplex.arousal']
+    a_df = manipulate_df_vals(org_df)
 
-    org_df.loc[val_df.index.values, :].replace([-2, -1, 0, 1, 2], [1, 2, 3, 4, 5])
-    org_df.loc[ar_df.index.values, :].replace([-2, -1, 0, 1, 2], [1, 2, 3, 4, 5])
-
-    org_df[org_df.variable == 'circumplex.valence'] = org_df.loc[val_df.index.values, :].replace([-2, -1, 0, 1, 2],
-                                                                                                 [1, 2, 3, 4, 5])
-    org_df[org_df.variable == 'circumplex.arousal'] = org_df.loc[ar_df.index.values, :].replace([-2, -1, 0, 1, 2],
-                                                                                                [1, 2, 3, 4, 5])
-
-    df = org_df.copy()
-
-    ids = np.unique(df.id.values)
-    user_df = df[df.id == ids[0]]
-
-    X, y = merge_user_data(df, True, mean=True)
+    X, y = merge_user_data(a_df, False, mean=True)
     np.save('X', X)
     np.save('y', y)
     #save_processed_to_csv(X, y, df)

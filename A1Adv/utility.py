@@ -58,3 +58,18 @@ def create_time_arr(user_df):
     u_dates = np.unique(np.array([user_df.time.values[i][0:11] for i in range(n)]))
     time_arr = np.array([u_dates[i] + time for i in range(len(u_dates))])
     return time_arr
+
+def manipulate_df_vals(df):
+    org_df = df.copy()
+    org_df = org_df.dropna(axis=0, how='any')
+    val_df = org_df[org_df.variable == 'circumplex.valence']
+    ar_df = org_df[org_df.variable == 'circumplex.arousal']
+
+    org_df.loc[val_df.index.values, :].replace([-2, -1, 0, 1, 2], [1, 2, 3, 4, 5])
+    org_df.loc[ar_df.index.values, :].replace([-2, -1, 0, 1, 2], [1, 2, 3, 4, 5])
+
+    org_df[org_df.variable == 'circumplex.valence'] = org_df.loc[val_df.index.values, :].replace([-2, -1, 0, 1, 2],
+                                                                                                 [1, 2, 3, 4, 5])
+    org_df[org_df.variable == 'circumplex.arousal'] = org_df.loc[ar_df.index.values, :].replace([-2, -1, 0, 1, 2],
+                                                                                                [1, 2, 3, 4, 5])
+    return org_df.copy()
