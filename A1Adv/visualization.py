@@ -24,6 +24,7 @@ for index in indices:
     axes[powerset[i][0], powerset[i][1]].plot(np.arange(len(X[index, :])), X[index, :])
     axes[powerset[i][0], powerset[i][1]].set_title(umt[index])
     i += 1
+
 plt.figure(5)
 plt.plot(np.arange(len(y)), y)
 plt.show()
