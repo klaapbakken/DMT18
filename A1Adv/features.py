@@ -4,7 +4,7 @@ import pandas as pd
 from utility import t_delta, rnn_reshape, rnn_reshape_2, create_time_arr, manipulate_df_vals
 
 
-def create_time_series(user_df, u_vars, time_arr=None):
+def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False, time_arr=None):
     """Creates a matrix containing information on activity between specific time points
 
     user_df - the data frame corresponding to a specific user, as seen when importing data from
@@ -16,7 +16,6 @@ def create_time_series(user_df, u_vars, time_arr=None):
 
     # Getting time grid
     if time_arr is None:
-        assert 'mood' not in u_vars
         # Data frame with mood rows removed
         nm_user_df = user_df[user_df.variable == 'mood']
         tg = nm_user_df.time.values
@@ -39,6 +38,7 @@ def create_time_series(user_df, u_vars, time_arr=None):
 
     # Covariate matrix
     X = np.zeros((len(u_vars), n))
+    X.fill(np.nan)
     # Indices of values that should not be included next loop
     drop_list = np.array([])
 
@@ -69,8 +69,15 @@ def create_time_series(user_df, u_vars, time_arr=None):
                 drop_list = np.concatenate((drop_list, m_i))
             i += 1
         j += 1
-    X = np.vstack((X, np.repeat(user_df.id.values[0], X.shape[1])))
-    return X
+    y_index = np.where(u_vars == 'mood')[0][0]
+    y = X[y_index, :]
+    if add_id:
+        X = np.vstack((X, np.repeat(user_df.id.values[0], X.shape[1])))
+    if shift:
+        X, y = shift_and_add_time(X, y, tg, skip_time=(time_arr is None))
+    if rm_mood:
+        X = np.delete(X, y_index, 0)
+    return X, y
 
 
 def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
@@ -85,52 +92,32 @@ def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
     return sX, sy
 
 
-def merge_user_data(df, reshape, l=8, seq_shift=1, mean=False):
+def merge_user_data(df, reshape, rm_mood=True, add_id=False, shift=False, l=8, seq_shift=1, collapse=False):
     # Collecting data from all users in a data frame into a feature matrix
     # Option to reshape for use in Keras RNN
-    if mean:
-        vars = np.unique(df.variable.values)
-    else:
-        vars = np.unique(df.variable.values[df.variable != 'mood'])
+    vars = np.unique(df.variable.values)
     ids = np.unique(df.id.values)
     n_ids = ids.shape[0]
     id_df_list = [df[df.id == ids[i]] for i in range(n_ids)]
 
     i = 0
     c_df = id_df_list[i]
-    if mean:
+    if collapse:
         c_time_arr = create_time_arr(c_df)
-        X = create_time_series(c_df, vars, time_arr=c_time_arr)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift, time_arr=c_time_arr)
     else:
-        c_time_arr = df.time.values[df.variable == 'mood']
-        X = create_time_series(c_df, vars)
-    if mean:
-        y_index = np.where(np.unique(c_df.variable.values) == 'mood')[0][0]
-        y = X[y_index, :]
-        #X = np.delete(X, y_index, 0)
-    else:
-        y = c_df.value.values[c_df.variable == 'mood']
-    #X, y = shift_and_add_time(X, y, c_time_arr, l=l, skip_time=mean)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift)
     if reshape:
         X, y = rnn_reshape(X, y, l)
         X, y = rnn_reshape_2(X, y, l, seq_shift)
-
     for i in range(1, n_ids):
         c_df = id_df_list[i]
         print(i)
-        if mean:
+        if collapse:
             c_time_arr = create_time_arr(c_df)
-            tX = create_time_series(c_df, vars, time_arr=c_time_arr)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift, time_arr=c_time_arr)
         else:
-            c_time_arr = df.time.values[df.variable == 'mood']
-            tX = create_time_series(c_df, vars)
-        if mean:
-            ty_index = np.where(np.unique(c_df.variable.values) == 'mood')[0][0]
-            ty = tX[ty_index, :]
-            #tX = np.delete(tX, ty_index, 0)
-        else:
-            ty = c_df.value.values[c_df.variable == 'mood']
-        #tX, ty = shift_and_add_time(tX, ty, c_time_arr, l=l, skip_time=mean)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift)
         if reshape:
             tX, ty = rnn_reshape(tX, ty, l)
             tX, ty = rnn_reshape_2(tX, ty, l, seq_shift)
@@ -145,21 +132,14 @@ def merge_user_data(df, reshape, l=8, seq_shift=1, mean=False):
     return X, y, vars
 
 
-def save_processed_to_csv(X, y, df, u_vars):
+def save_processed_to_csv(X, u_vars, rm_mood=False, add_id=False,):
     # Saving data to CSV file
-    cols = np.hstack((u_vars, ['ids']))
-    #data = np.vstack((X, y)).T
+    if rm_mood:
+        cols = np.array([u_vars[i] for i in range(len(u_vars)) if u_vars[i] != 'mood'])
+    else:
+        cols = u_vars
+    if add_id:
+        cols = np.hstack((cols, ['ids']))
     data = X.T
     proc_df = pd.DataFrame(data=data, columns=cols)
     return proc_df.to_csv('full_processed_data.csv', index=False)
-
-
-if __name__ == "__main__":
-    org_df = pd.read_csv("./Data/dataset_mood_smartphone.csv")
-
-    a_df = manipulate_df_vals(org_df)
-
-    X, y = merge_user_data(a_df, False, mean=True)
-    np.save('X', X)
-    np.save('y', y)
-    # save_processed_to_csv(X, y, df)
