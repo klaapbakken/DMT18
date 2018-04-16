@@ -3,20 +3,16 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 
 from keras.models import Sequential
-from keras.layers import Dense, LSTM, Dropout
+from keras.layers import GRU, Dense
 
 
-def train_model(X, y, seq_shift):
-    tr_y = y[::seq_shift]
+def train_model(X, y):
 
     model = Sequential()
-    model.add(Dense(512, input_shape=(tr_X.shape[1], tr_X.shape[2])))
-    model.add(Dropout(0.5))
-    model.add(Dense(256))
-    model.add(LSTM(32, input_shape=(tr_X.shape[1], tr_X.shape[2])))
+    model.add(GRU(32, input_shape=(X.shape[1], X.shape[2])))
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
-    history = model.fit(tr_X, tr_y, epochs=100, batch_size=32, shuffle=False)
+    history = model.fit(X, y, epochs=200, batch_size=32, shuffle=False)
 
     return model
 
@@ -58,5 +54,6 @@ if __name__ == "__main__":
 
     plt.plot(np.arange(len(yhat)), np.abs(base_yhat - te_y))
     plt.plot(np.arange(len(yhat)), np.abs(yhat - te_y))
+
 
     plt.show()

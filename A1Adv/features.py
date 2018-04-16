@@ -140,14 +140,18 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shi
     return X, y, vars
 
 
-def save_processed_to_csv(X, u_vars, rm_mood=False, add_id=False,):
+def save_processed_to_csv(fname, X, u_vars, rm_mood=False, add_date=False, add_id=False, add_t_delta=False):
     # Saving data to CSV file
     if rm_mood:
         cols = np.array([u_vars[i] for i in range(len(u_vars)) if u_vars[i] != 'mood'])
     else:
         cols = u_vars
     if add_id:
-        cols = np.hstack((cols, ['ids']))
+        cols = np.hstack((cols, ['id']))
+    if add_date:
+        cols = np.hstack((cols, ['date']))
+    if add_t_delta:
+        cols = np.hstack((cols, ['tdelta']))
     data = X.T
     proc_df = pd.DataFrame(data=data, columns=cols)
-    return proc_df.to_csv('full_processed_data.csv', index=False)
+    return proc_df.to_csv(fname, index=False)
