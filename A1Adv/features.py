@@ -4,7 +4,7 @@ import pandas as pd
 from utility import t_delta, rnn_reshape, rnn_reshape_2, create_time_arr, manipulate_df_vals
 
 
-def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False, time_arr=None):
+def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False, add_date=False, time_arr=None, nan=False):
     """Creates a matrix containing information on activity between specific time points
 
     user_df - the data frame corresponding to a specific user, as seen when importing data from
@@ -38,7 +38,8 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
 
     # Covariate matrix
     X = np.zeros((len(u_vars), n))
-    X.fill(np.nan)
+    if nan:
+        X.fill(np.nan)
     # Indices of values that should not be included next loop
     drop_list = np.array([])
 
@@ -73,6 +74,8 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
     y = X[y_index, :]
     if add_id:
         X = np.vstack((X, np.repeat(user_df.id.values[0], X.shape[1])))
+    if add_date:
+        X = np.vstack((X, tg))
     if shift:
         X, y = shift_and_add_time(X, y, tg, skip_time=(time_arr is None))
     if rm_mood:
@@ -92,7 +95,7 @@ def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
     return sX, sy
 
 
-def merge_user_data(df, reshape, rm_mood=True, add_id=False, shift=False, l=8, seq_shift=1, collapse=False):
+def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shift=False, l=8, seq_shift=1, collapse=False, m_tg=False):
     # Collecting data from all users in a data frame into a feature matrix
     # Option to reshape for use in Keras RNN
     vars = np.unique(df.variable.values)
@@ -103,10 +106,10 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, shift=False, l=8, s
     i = 0
     c_df = id_df_list[i]
     if collapse:
-        c_time_arr = create_time_arr(c_df)
-        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift, time_arr=c_time_arr)
+        c_time_arr = create_time_arr(c_df, m_tg=m_tg)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr)
     else:
-        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift)
     if reshape:
         X, y = rnn_reshape(X, y, l)
         X, y = rnn_reshape_2(X, y, l, seq_shift)
@@ -114,10 +117,10 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, shift=False, l=8, s
         c_df = id_df_list[i]
         print(i)
         if collapse:
-            c_time_arr = create_time_arr(c_df)
-            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift, time_arr=c_time_arr)
+            c_time_arr = create_time_arr(c_df, m_tg=m_tg)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr)
         else:
-            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, shift=shift)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift)
         if reshape:
             tX, ty = rnn_reshape(tX, ty, l)
             tX, ty = rnn_reshape_2(tX, ty, l, seq_shift)
@@ -129,6 +132,11 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, shift=False, l=8, s
             y = np.hstack((y, ty))
         print(X.shape)
         print(y.shape)
+    if reshape:
+        y = y[::seq_shift]
+    print('Final arrays: ')
+    print(X.shape)
+    print(y.shape)
     return X, y, vars
 
 

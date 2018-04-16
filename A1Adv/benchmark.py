@@ -18,9 +18,9 @@ te_users = users[4:]
 te_df = df.loc[df['id'].isin(te_users)]
 
 
-col_X, col_y, u_vars = merge_user_data(tr_df, True, rm_mood=True,
-                                       add_id=False, shift=True, l=20, seq_shift=4, collapse=False)
-#b_y_pred = np.roll(col_y, 1)
+col_X, col_y, u_vars = merge_user_data(tr_df, True, rm_mood=False,
+                                       add_id=False, add_date=True, shift=True, l=8, seq_shift=2, collapse=True, m_tg=True)
+b_y_pred = col_y
 
 #save_processed_to_csv(col_X, u_vars, rm_mood=False, add_id=True)
 
