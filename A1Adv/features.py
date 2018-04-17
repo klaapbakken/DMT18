@@ -95,7 +95,7 @@ def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
     return sX, sy
 
 
-def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shift=False, l=8, seq_shift=1, collapse=False, m_tg=False):
+def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shift=False, l=8, seq_shift=1, collapse=False, m_tg=False, nan=False):
     # Collecting data from all users in a data frame into a feature matrix
     # Option to reshape for use in Keras RNN
     vars = np.unique(df.variable.values)
@@ -107,9 +107,9 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shi
     c_df = id_df_list[i]
     if collapse:
         c_time_arr = create_time_arr(c_df, m_tg=m_tg)
-        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr, nan=nan)
     else:
-        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, nan=nan)
     if reshape:
         X, y = rnn_reshape(X, y, l)
         X, y = rnn_reshape_2(X, y, l, seq_shift)
@@ -118,9 +118,9 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shi
         print(i)
         if collapse:
             c_time_arr = create_time_arr(c_df, m_tg=m_tg)
-            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr, nan=nan)
         else:
-            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, nan=nan)
         if reshape:
             tX, ty = rnn_reshape(tX, ty, l)
             tX, ty = rnn_reshape_2(tX, ty, l, seq_shift)
