@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from utility import t_delta, rnn_reshape, rnn_reshape_2, create_time_arr, manipulate_df_vals
+from utility import t_delta, rnn_reshape, rnn_reshape_2, create_time_arr, manipulate_df_vals, extract_next_day_average
 
 
-def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False, add_date=False, time_arr=None, nan=False):
+def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False, add_date=False,
+                       time_arr=None, nan=False, mask=False, day_avg=False):
     """Creates a matrix containing information on activity between specific time points
 
     user_df - the data frame corresponding to a specific user, as seen when importing data from
@@ -15,6 +16,7 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
     """
 
     # Getting time grid
+
     if time_arr is None:
         # Data frame with mood rows removed
         nm_user_df = user_df[user_df.variable == 'mood']
@@ -38,7 +40,7 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
 
     # Covariate matrix
     X = np.zeros((len(u_vars), n))
-    if nan:
+    if nan or mask:
         X.fill(np.nan)
     # Indices of values that should not be included next loop
     drop_list = np.array([])
@@ -70,8 +72,11 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
                 drop_list = np.concatenate((drop_list, m_i))
             i += 1
         j += 1
-    y_index = np.where(u_vars == 'mood')[0][0]
-    y = X[y_index, :]
+    if day_avg:
+        X, y = extract_next_day_average(X, tg, user_df)
+    else:
+        y_index = np.where(u_vars == 'mood')[0][0]
+        y = X[y_index, :]
     if add_id:
         X = np.vstack((X, np.repeat(user_df.id.values[0], X.shape[1])))
     if add_date:
@@ -80,6 +85,11 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
         X, y = shift_and_add_time(X, y, tg, skip_time=(time_arr is None))
     if rm_mood:
         X = np.delete(X, y_index, 0)
+    if mask:
+        mask_matrix = (X == np.nan).astype('int')
+        X = np.vstack((X, mask_matrix))
+    if mask and not nan:
+        X = np.nan_to_num(X)
     return X, y
 
 
@@ -95,7 +105,8 @@ def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
     return sX, sy
 
 
-def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shift=False, l=8, seq_shift=1, collapse=False, m_tg=False, nan=False):
+def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shift=False,
+                    l=8, seq_shift=1, collapse=False, m_tg=False, nan=False, mask=False, day_avg=False):
     # Collecting data from all users in a data frame into a feature matrix
     # Option to reshape for use in Keras RNN
     vars = np.unique(df.variable.values)
@@ -107,9 +118,11 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shi
     c_df = id_df_list[i]
     if collapse:
         c_time_arr = create_time_arr(c_df, m_tg=m_tg)
-        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr, nan=nan)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date,
+                                  shift=shift, time_arr=c_time_arr, nan=nan, mask=mask, day_avg=day_avg)
     else:
-        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, nan=nan)
+        X, y = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date,
+                                  shift=shift, nan=nan, mask=mask, day_avg=day_avg)
     if reshape:
         X, y = rnn_reshape(X, y, l)
         X, y = rnn_reshape_2(X, y, l, seq_shift)
@@ -118,9 +131,11 @@ def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shi
         print(i)
         if collapse:
             c_time_arr = create_time_arr(c_df, m_tg=m_tg)
-            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, time_arr=c_time_arr, nan=nan)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date,
+                                        shift=shift, time_arr=c_time_arr, nan=nan, mask=mask, day_avg=day_avg)
         else:
-            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date, shift=shift, nan=nan)
+            tX, ty = create_time_series(c_df, vars, rm_mood=rm_mood, add_id=add_id, add_date=add_date,
+                                        shift=shift, nan=nan, mask=mask, day_avg=day_avg)
         if reshape:
             tX, ty = rnn_reshape(tX, ty, l)
             tX, ty = rnn_reshape_2(tX, ty, l, seq_shift)

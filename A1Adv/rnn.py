@@ -17,6 +17,7 @@ def rnn(X, y):
 
     return model
 
+
 def fcnn(X, y):
     model = Sequential()
     model.add(Dense(128, input_shape=(X.shape[0], X.shape[1])))
@@ -27,5 +28,3 @@ def fcnn(X, y):
     model.fit(X, y, epochs=200, batch_size=32, shuffle=False)
 
     return model
-
-

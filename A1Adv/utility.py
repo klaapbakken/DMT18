@@ -77,3 +77,23 @@ def manipulate_df_vals(df):
     org_df[org_df.variable == 'circumplex.arousal'] = org_df.loc[ar_df.index.values, :].replace([-2, -1, 0, 1, 2],
                                                                                                 [1, 2, 3, 4, 5])
     return org_df.copy()
+
+def extract_next_day_average(X, tg, df, m_pos):
+    # Time point, the last one in a sequence as input. Create a timepoint at 23.59.999 on current day.
+    # Locate all points in data frame with 0 < t_delta < 24*60*60 and variable corresponding to current.
+    # Take the average, this is the response to current timepoint
+    #Remove from X if next day average does not exist
+
+    cols = X.shape[1]
+    mn = '23:59:59.999'
+    nda = []
+    for i in range(cols):
+        cur_day = tg[i][0:11] + mn
+        next_day_indices = [j for j in range(len(tg)) if (0 <= t_delta(tg[j], cur_day) <= 24*60*60)
+                            and df.variable.values[j] == 'mood']
+        if not next_day_indices:
+            X = np.delete(X, 0, i)
+        else:
+            nda[i] = np.mean(X[m_pos, next_day_indices])
+    return X, nda
+

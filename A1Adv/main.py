@@ -15,8 +15,12 @@ te_users = users[20:]
 te_df = df.loc[df['id'].isin(te_users)]
 
 baseline = False
-col_seq = True
+
+col_seq = False
 cs_merge = False
+
+u_col_seq = True
+ucs_merge = True
 
 create_csv = False
 
@@ -62,6 +66,37 @@ if col_seq:
     plt.show()
 
     print('MAE: ', mae, '\n Baseline MAE: ', b_mae)
+
+if u_col_seq:
+    if ucs_merge:
+        tr_X_seq, tr_y, tr_u_vars = merge_user_data(tr_df, True, rm_mood=False, add_id=False, add_date=False,
+                                       shift=True, l=30, seq_shift=1, collapse=False, m_tg=False, mask=True)
+        te_X_seq, te_y, te_u_vars = merge_user_data(te_df, True, rm_mood=False, add_id=False, add_date=False,
+                                       shift=True, l=30, seq_shift=1, collapse=False, m_tg=False, mask=True)
+        np.save('trainX', tr_X_seq)
+        np.save('trainy', tr_y)
+        np.save('testX', te_X_seq)
+        np.save('testy', te_y)
+    else:
+        tr_X_seq = np.load('trainX.npy')
+        tr_y = np.load('trainy.npy')
+        te_X_seq = np.load('testX.npy')
+        te_y = np.load('testy.npy')
+
+    model = rnn(tr_X_seq, tr_y)
+    y_hat = np.squeeze(model.predict(te_X_seq))
+    mae = np.mean(np.abs(te_y - y_hat))
+
+    b_y = np.roll(te_y, -1)[:-1]
+    b_mae = np.mean(np.abs(te_y[:-1] - b_y))
+
+    plt.plot(np.arange(len(b_y)), np.abs(b_y - te_y[:-1]))
+    plt.plot(np.arange(len(y_hat)), np.abs(y_hat - te_y))
+    plt.show()
+
+    plt.plot(np.arange(len(te_y)), te_y)
+    plt.plot(np.arange(len(y_hat)), y_hat)
+    plt.show()
 
 if create_csv:
     X, y, u_vars = merge_user_data(df, False, rm_mood=False, add_id=True, add_date=True,
