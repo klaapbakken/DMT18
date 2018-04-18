@@ -72,11 +72,10 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
                 drop_list = np.concatenate((drop_list, m_i))
             i += 1
         j += 1
+    y_index = np.where(u_vars == 'mood')[0][0]
     if day_avg:
-        m_pos = np.where(u_vars == 'mood')[0][0]
-        X, y = extract_next_day_average(X, tg, user_df, m_pos)
+        X, y = extract_next_day_average(X, tg, user_df, y_index)
     else:
-        y_index = np.where(u_vars == 'mood')[0][0]
         y = X[y_index, :]
     if add_id:
         X = np.vstack((X, np.repeat(user_df.id.values[0], X.shape[1])))

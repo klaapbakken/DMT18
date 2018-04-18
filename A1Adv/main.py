@@ -20,7 +20,7 @@ col_seq = False
 cs_merge = False
 
 u_col_seq = True
-ucs_merge = True
+ucs_merge = False
 
 create_csv = False
 

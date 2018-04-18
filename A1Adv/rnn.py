@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout, Activation
+from keras.layers import LSTM, Dense, Dropout, Activation, BatchNormalization
 
 
 def rnn(X, y):
     model = Sequential()
-    model.add(Dense(48, input_shape=(X.shape[1], X.shape[2])))
+    model.add(BatchNormalization(input_shape=(X.shape[1], X.shape[2])))
     model.add(LSTM(16, input_shape=(X.shape[1], X.shape[2])))
     model.add(Dense(1))
     model.add(Activation('linear'))
