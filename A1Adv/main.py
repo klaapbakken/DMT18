@@ -70,9 +70,9 @@ if col_seq:
 if u_col_seq:
     if ucs_merge:
         tr_X_seq, tr_y, tr_u_vars = merge_user_data(tr_df, True, rm_mood=False, add_id=False, add_date=False,
-                                       shift=True, l=30, seq_shift=1, collapse=False, m_tg=False, mask=True)
+                                       shift=True, l=30, seq_shift=1, collapse=False, m_tg=False, mask=True, day_avg=True)
         te_X_seq, te_y, te_u_vars = merge_user_data(te_df, True, rm_mood=False, add_id=False, add_date=False,
-                                       shift=True, l=30, seq_shift=1, collapse=False, m_tg=False, mask=True)
+                                       shift=True, l=30, seq_shift=1, collapse=False, m_tg=False, mask=True, day_avg=True)
         np.save('trainX', tr_X_seq)
         np.save('trainy', tr_y)
         np.save('testX', te_X_seq)

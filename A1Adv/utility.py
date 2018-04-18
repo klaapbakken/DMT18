@@ -94,6 +94,6 @@ def extract_next_day_average(X, tg, df, m_pos):
         if not next_day_indices:
             X = np.delete(X, 0, i)
         else:
-            nda[i] = np.mean(X[m_pos, next_day_indices])
+            nda.append(np.mean(X[m_pos, next_day_indices]))
     return X, nda
 

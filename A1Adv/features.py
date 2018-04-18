@@ -73,7 +73,8 @@ def create_time_series(user_df, u_vars, rm_mood=False, shift=False, add_id=False
             i += 1
         j += 1
     if day_avg:
-        X, y = extract_next_day_average(X, tg, user_df)
+        m_pos = np.where(u_vars == 'mood')[0][0]
+        X, y = extract_next_day_average(X, tg, user_df, m_pos)
     else:
         y_index = np.where(u_vars == 'mood')[0][0]
         y = X[y_index, :]
