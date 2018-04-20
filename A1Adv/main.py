@@ -75,6 +75,7 @@ if col_seq:
             y_hat = np.squeeze(model.predict(test_X))
             mae = np.mean(np.abs(test_y - y_hat))
             cv.append(mae)
+        np.save('cv', np.array(cv))
 
     elif rnn_run:
 
