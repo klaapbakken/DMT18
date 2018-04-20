@@ -3,28 +3,31 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout, Activation, BatchNormalization
+from keras.layers import LSTM, Dense, Dropout, Activation, BatchNormalization, GRU
+from keras import optimizers, regularizers
+from keras import callbacks
 
 
 def rnn(X, y):
+
     model = Sequential()
     model.add(BatchNormalization(input_shape=(X.shape[1], X.shape[2])))
-    model.add(LSTM(16, input_shape=(X.shape[1], X.shape[2])))
+    model.add(Dense(32))
+    model.add(LSTM(32, input_shape=(X.shape[1], X.shape[2]), kernel_regularizer=regularizers.l2()))
     model.add(Dense(1))
-    model.add(Activation('linear'))
     model.compile(loss='mae', optimizer='adam')
-    model.fit(X, y, epochs=100, batch_size=32, shuffle=False)
+    model.fit(X, y, epochs=300, batch_size=64, shuffle=False, callbacks=[callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto')])
 
     return model
 
 
 def fcnn(X, y):
     model = Sequential()
-    model.add(Dense(128, input_shape=(X.shape[0], X.shape[1])))
+    model.add(Dense(1024, input_shape=(X.shape[0], X.shape[1])))
     model.add(Dropout(0.9))
     model.add(Dense(64))
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
-    model.fit(X, y, epochs=200, batch_size=32, shuffle=False)
+    model.fit(X, y, epochs=500, batch_size=32, shuffle=False)
 
     return model
