@@ -16,7 +16,7 @@ def rnn(X, y):
     model.add(LSTM(32, input_shape=(X.shape[1], X.shape[2]), kernel_regularizer=regularizers.l2()))
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
-    model.fit(X, y, epochs=300, batch_size=64, shuffle=False, callbacks=[callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto')])
+    model.fit(X, y, epochs=300, batch_size=64, shuffle=False)
 
     return model
 

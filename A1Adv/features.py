@@ -115,10 +115,12 @@ def shift_and_add_time(X, y, time_arr, l=1, skip_time=True):
 
 
 def merge_user_data(df, reshape, rm_mood=True, add_id=False, add_date=False, shift=False,
-                    l=8, seq_shift=1, collapse=False, m_tg=False, nan=False, mask=False, day_avg=False, add_var=False):
+                    l=8, seq_shift=1, collapse=False, m_tg=False, nan=False, mask=False, day_avg=False, add_var=False, cv=False):
     # Collecting data from all users in a data frame into a feature matrix
     # Option to reshape for use in Keras RNN
     vars = np.unique(df.variable.values)
+    if cv is not False:
+        vars = np.unique(cv.variable.values)
     #vars = np.array(['activity', 'screen', 'circumplex.valence', 'circumplex.arousal' ,'mood'])
     ids = np.unique(df.id.values)
     n_ids = ids.shape[0]
